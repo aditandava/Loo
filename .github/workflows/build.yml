@@ -1,0 +1,67 @@
+name: Build HealthyIG (renamed)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout HealthyIG (this repo)
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install apktool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool
+
+      - name: Download source APK from release (tag: source-apk)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p build
+          gh release download source-apk --repo ${{ github.repository }} --pattern 'ig.apk' --dir build
+
+      - name: Decompile
+        run: |
+          cd build
+          apktool d -r -f -o ig_plain ig.apk
+
+      - name: Run HealthyIG's endpoint-breaking script
+        run: |
+          cp script.sh build/
+          cd build
+          chmod +x script.sh
+          ./script.sh
+
+      - name: Recompile
+        run: |
+          cd build
+          apktool b -f ig_plain -o patched.apk
+
+      - name: Download ApkRenamer
+        run: |
+          mkdir -p tool
+          curl -L -o tool/ApkRenamer.zip https://github.com/dvaoru/ApkRenamer/releases/latest/download/ApkRenamer.zip
+          unzip -o tool/ApkRenamer.zip -d tool
+
+      - name: Rename package to com.yuhan.ig and sign
+        run: |
+          java -jar tool/renamer.jar \
+            -a build/patched.apk \
+            -o healthyig.apk \
+            -n "HealthyIG" \
+            -p com.yuhan.ig \
+            -d
+
+      - name: Upload built APK as a downloadable file
+        uses: actions/upload-artifact@v4
+        with:
+          name: healthyig-apk
+          path: healthyig.apk
