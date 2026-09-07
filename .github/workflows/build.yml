@@ -1,4 +1,4 @@
-name: Build HealthyIG (renamed)
+5name: Build HealthyIG (renamed)
 
 on:
   workflow_dispatch:
@@ -45,18 +45,21 @@ jobs:
           cd build
           apktool b -f ig_plain -o patched.apk
 
-      - name: Download ApkRenamer
+      - name: Download ApkRenamer and apktool.jar
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p tool
+          mkdir -p tool bin
           gh release download --repo dvaoru/ApkRenamer --pattern '*.zip' --dir tool
           cd tool
           zipfile=$(ls *.zip | head -n1)
           unzip -o "$zipfile"
           cd ..
           find tool -iname "renamer.jar" -exec cp {} tool/renamer.jar \;
-          ls -R tool
+          gh release download --repo iBotPeaches/Apktool --pattern '*.jar' --dir bin
+          mv bin/apktool_*.jar bin/apktool.jar
+          ls -R tool bin
+
           
       - name: Rename package to com.yuhan.ig and sign
         run: |
