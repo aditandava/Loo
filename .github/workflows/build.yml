@@ -1,4 +1,4 @@
-5name: Build HealthyIG (renamed)
+name: Build HealthyIG (renamed)
 
 on:
   workflow_dispatch:
@@ -16,10 +16,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install apktool
+      - name: Install system apktool
         run: |
           sudo apt-get update
           sudo apt-get install -y apktool
+          apktool --version
 
       - name: Download source APK from release (tag source-apk)
         env:
@@ -27,11 +28,14 @@ jobs:
         run: |
           mkdir -p build
           gh release download source-apk --repo ${{ github.repository }} --pattern 'Ig.apk' --dir build
+          test -f build/Ig.apk || { echo "::error::Ig.apk did not download"; exit 1; }
+          ls -la build
 
       - name: Decompile
         run: |
           cd build
           apktool d -r -f -o ig_plain Ig.apk
+          test -d ig_plain/smali || { echo "::error::Decompile produced no smali folder"; exit 1; }
 
       - name: Run HealthyIG's endpoint-breaking script
         run: |
@@ -44,23 +48,30 @@ jobs:
         run: |
           cd build
           apktool b -f ig_plain -o patched.apk
+          test -f patched.apk || { echo "::error::Recompile produced no patched.apk"; exit 1; }
+          ls -la patched.apk
 
       - name: Download ApkRenamer and apktool.jar
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p tool bin
+
           gh release download --repo dvaoru/ApkRenamer --pattern '*.zip' --dir tool
           cd tool
           zipfile=$(ls *.zip | head -n1)
           unzip -o "$zipfile"
           cd ..
           find tool -iname "renamer.jar" -exec cp {} tool/renamer.jar \;
+          test -f tool/renamer.jar || { echo "::error::renamer.jar not found after extracting ApkRenamer"; ls -R tool; exit 1; }
+
           gh release download --repo iBotPeaches/Apktool --pattern '*.jar' --dir bin
-          mv bin/apktool_*.jar bin/apktool.jar
+          apktool_jar=$(ls bin/apktool_*.jar | head -n1)
+          mv "$apktool_jar" bin/apktool.jar
+          test -f bin/apktool.jar || { echo "::error::apktool.jar not found"; ls -R bin; exit 1; }
+
           ls -R tool bin
 
-          
       - name: Rename package to com.yuhan.ig and sign
         run: |
           java -jar tool/renamer.jar \
@@ -69,6 +80,8 @@ jobs:
             -n "HealthyIG" \
             -p com.yuhan.ig \
             -d
+          test -f healthyig.apk || { echo "::error::healthyig.apk was not produced"; exit 1; }
+          ls -la healthyig.apk
 
       - name: Upload built APK as a downloadable file
         uses: actions/upload-artifact@v4
