@@ -50,6 +50,7 @@ jobs:
           mkdir -p tool
           curl -L -o tool/ApkRenamer.zip https://github.com/dvaoru/ApkRenamer/releases/latest/download/ApkRenamer.zip
           unzip -o tool/ApkRenamer.zip -d tool
+          find tool -name "renamer.jar" -exec cp {} tool/renamer.jar \;
 
       - name: Rename package to com.yuhan.ig and sign
         run: |
