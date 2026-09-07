@@ -26,12 +26,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p build
-          gh release download source-apk --repo ${{ github.repository }} --pattern 'ig.apk' --dir build
+          gh release download source-apk --repo ${{ github.repository }} --pattern 'Ig.apk' --dir build
 
       - name: Decompile
         run: |
           cd build
-          apktool d -r -f -o ig_plain ig.apk
+          apktool d -r -f -o ig_plain Ig.apk
 
       - name: Run HealthyIG's endpoint-breaking script
         run: |
