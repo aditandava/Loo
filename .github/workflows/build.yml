@@ -45,12 +45,18 @@ jobs:
           cd build
           apktool b -f ig_plain -o patched.apk
 
-      - name: Download ApkRenamer
+      - name: Download ApkRenamer AND local apktool.jar
         run: |
+          # 1. Download and extract ApkRenamer
           mkdir -p tool
           curl -L -o tool/ApkRenamer.zip https://github.com/dvaoru/ApkRenamer/releases/latest/download/ApkRenamer.zip
           unzip -o tool/ApkRenamer.zip -d tool
           find tool -name "renamer.jar" -exec cp {} tool/renamer.jar \;
+          
+          # 2. CREATE BIN FOLDER AND DOWNLOAD APKTOOL.JAR FOR APKRENAMER
+          mkdir -p bin
+          curl -L -o bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.10.0/apktool_2.10.0.jar
+
 
       - name: Rename package to com.yuhan.ig and sign
         run: |
